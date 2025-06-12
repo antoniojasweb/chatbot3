@@ -428,7 +428,8 @@ if st.session_state.excel_data is not None and st.session_state.faiss_index is n
 # --- Configuración de la barra lateral y opciones adicionales ---
 # Mostrar el logo del chatbot
 image = Image.open(FileLogo)
-st.sidebar.image(image, caption='Chatbot de Ciclos Formativos', use_column_width=True)
+#st.image(image, caption='Chatbot de Ciclos Formativos', use_column_width=True)
+st.image(image, caption='', width=200)
 
 # Mostrar información del chatbot
 st.sidebar.header("Chatbot de Ciclos Formativos en Extremadura")
