@@ -329,7 +329,7 @@ df = extraer_informacion_pdf(FilePDF)
 # Descargar el logo del chatbot si no existe
 if not os.path.exists(FileLogo):
     descargar_logo(FileLogo)
-    image = Image.open(FileLogo)
+image = Image.open(FileLogo)
 
 # Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
 #st.write(df.head())
