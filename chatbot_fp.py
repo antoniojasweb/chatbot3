@@ -317,15 +317,15 @@ def text_to_audio_base64(text, lang='es'):
 if not os.path.exists(FilePDF):
     descargar_pdf(FilePDF)
 
-#if os.path.exists(FileExcel):
-#     os.remove(FileExcel)
+if os.path.exists(FileExcel):
+     os.remove(FileExcel)
 
 # Comprobar si el archivo Excel ya existe, si no, extraer información del PDF y crear el DataFrame
 # Si el archivo Excel ya existe, cargarlo directamente
 if not os.path.exists(FileExcel):
     df = extraer_informacion_pdf(FilePDF)
-else:
-    df = pd.read_excel(FileExcel)
+#else:
+#    df = pd.read_excel(FileExcel)
 
     # Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
     #st.write(df.head())
