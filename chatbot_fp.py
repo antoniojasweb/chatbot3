@@ -1,20 +1,58 @@
-
+# -------------------------------------------------------------------
 #pip install streamlit pandas faiss-cpu sentence-transformers requests
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Importar las librerías necesarias
+# -------------------------------------------------------------------
 import fitz  # PyMuPDF
 import pandas as pd
 import os
 import requests
 
+import streamlit as st
+import pandas as pd
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
+import json
+import requests
+import os
+
+import streamlit as st
+from gtts import gTTS
+import io  # Necesario para manejar el buffer de audio
+import base64 # Necesario para incrustar audio directamente en HTML
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Definición de rutas y ficheros de datos
+url = "https://raw.githubusercontent.com/antoniojasweb/chatbot/main/pdf/"
+FilePDF = "25_26_OFERTA_por_Familias.pdf"
+FileExcel = "oferta_formativa_completa.xlsx"
+
+# Otros Parámetros de configuración
+ModeloEmbeddings = 'paraphrase-multilingual-MiniLM-L12-v2'
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# --- Configuración de la API de Gemini (Desde Colab, puedes dejar apiKey vacío para que Canvas lo gestione) ---
+# Si quieres usar modelos diferentes a gemini-2.0-flash o imagen-3.0-generate-002, proporciona una clave API aquí. De lo contrario, déjalo como está.
+API_KEY = "AIzaSyCf_fP-atrKzMJGwUgMCdHReTQtPoXKW8o"
+GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# --- Definición de funciones ---
+# -------------------------------------------------------------------
 def color_to_rgb(color_int):
     r = (color_int >> 16) & 255
     g = (color_int >> 8) & 255
     b = color_int & 255
     return (r, g, b)
 
-#@st.cache_resource
+# Descargar fichero PDF desde URL
 def descargar_pdf(fichero_pdf):
-    # Cargar fichero PDF desde URL
     FileURL = url + fichero_pdf
     if not os.path.exists(fichero_pdf):
         response = requests.get(FileURL)
@@ -27,7 +65,7 @@ def descargar_pdf(fichero_pdf):
         #else:
             #print(f"Error al descargar el archivo: {response.status_code}")
 
-#@st.cache_resource
+# Extraer información del PDF y guardarla en un DataFrame
 def extraer_informacion_pdf(fichero_pdf):
     # Abrir el PDF
     print("Fichero PDF procesado: " + fichero_pdf)
@@ -128,29 +166,9 @@ def extraer_informacion_pdf(fichero_pdf):
     #df.head()
 
     return df
-
 #--------------------------------------------------------------------
 
-import streamlit as st
-import pandas as pd
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-import json
-import requests
-import os
-
-import streamlit as st
-from gtts import gTTS
-import io  # Necesario para manejar el buffer de audio
-import base64 # Necesario para incrustar audio directamente en HTML
-
-# --- Configuración de la API de Gemini (Deja apiKey vacío para que Canvas lo gestione) ---
-API_KEY = "AIzaSyCf_fP-atrKzMJGwUgMCdHReTQtPoXKW8o" # Si quieres usar modelos diferentes a gemini-2.0-flash o imagen-3.0-generate-002, proporciona una clave API aquí. De lo contrario, déjalo como está.
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
-
-# --- Funciones de Utilidad ---
-
+# --- Cargar el modelo de embeddings y crear el índice FAISS ---
 @st.cache_resource
 def load_embedding_model():
     """
@@ -158,7 +176,7 @@ def load_embedding_model():
     Se usa un modelo multilingüe para mejor rendimiento con español.
     """
     #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
-    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    model = SentenceTransformer(ModeloEmbeddings)
     #st.write("Modelo de embeddings cargado.")
     return model
 
@@ -172,6 +190,7 @@ def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
         lambda row: f"Ciclo: {row.get('Nombre Ciclo', '')}. Nivel: {row.get('Grado', '')}. Familia: {row.get('Familia Profesional', '')}. Centro: {row.get('Instituto', '')}. Ciudad: {row.get('Municipio', '')}. Provincia: {row.get('Provincia', '')}. Turno: {row.get('Turno', '')}",
         axis=1
     )
+
     # Rellenar cualquier NaN con cadena vacía para evitar errores de embedding
     df['combined_text'] = df['combined_text'].fillna('')
 
@@ -279,18 +298,17 @@ def text_to_audio_base64(text, lang='es'):
         st.error(f"Error al generar audio: {e}")
         return None
 
-
-# Definición de rutas y ficheros de datos
-url = "https://raw.githubusercontent.com/antoniojasweb/chatbot/main/pdf/"
-FilePDF = "25_26_OFERTA_por_Familias.pdf"
-FileExcel = "oferta_formativa_completa.xlsx"
-
+# -------------------------------------------------------------------
+# --- Comprobación de existencia de archivos y carga de datos ---
+# Comprobar si el archivo PDF existe, si no, descargarlo
 if not os.path.exists(FilePDF):
     descargar_pdf(FilePDF)
 
 #if os.path.exists(FileExcel):
 #     os.remove(FileExcel)
 
+# Comprobar si el archivo Excel ya existe, si no, extraer información del PDF y crear el DataFrame
+# Si el archivo Excel ya existe, cargarlo directamente
 if not os.path.exists(FileExcel):
     df = extraer_informacion_pdf(FilePDF)
 else:
@@ -302,9 +320,10 @@ else:
     #st.write("Datos cargados desde el archivo Excel existente.")
 
 #df.head()
+# -------------------------------------------------------------------
 
-# --- Interfaz de Usuario Streamlit ---
-
+# -------------------------------------------------------------------
+# --- Configuración de la aplicación Streamlit ---
 st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 
 st.title("📚 Chatbot de Ciclos Formativos")
@@ -356,7 +375,7 @@ if st.session_state.excel_data is None:
         # Limpiar historial de chat al cargar un nuevo archivo
         st.session_state.chat_history = []
     except Exception as e:
-        st.error(f"Error al leer el archivo Excel o crear el índice: {e}")
+        st.error(f"Error al leer el archivo de datos o crear el índice: {e}")
         st.session_state.excel_data = None
         st.session_state.faiss_index = None
         st.session_state.corpus = None
@@ -464,17 +483,6 @@ else:
 # else:
 #     st.sidebar.write("Corpus no disponible. Asegúrate de cargar un archivo Excel válido.")
 
-# Mostrar información del historial de chat
-# st.sidebar.subheader("Historial de Chat")
-# if st.session_state.chat_history:
-#     st.sidebar.write(f"Total de mensajes en el historial: {len(st.session_state.chat_history)}")
-#     if len(st.session_state.chat_history) > 0:
-#         st.sidebar.write("Último mensaje:")
-#         last_message = st.session_state.chat_history[-1]
-#         st.sidebar.write(f"{last_message['role']}: {last_message['content']}")
-
-st.sidebar.write("\n")
-
 # --- Instrucciones de uso ---
 # Mostrar instrucciones de uso
 # st.sidebar.subheader("Instrucciones de Uso")
@@ -485,8 +493,8 @@ st.sidebar.write("\n")
 #     4. **Opciones adicionales**: Puedes cargar un nuevo archivo Excel o limpiar el historial de chat desde la barra lateral.
 # """)
 
-show_data = st.sidebar.checkbox("¿Cargar nuevo PDF?")
-if show_data:
+new_pdf = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
+if new_pdf:
     # Cargar PDF
     pdf_obj = st.sidebar.file_uploader("Carga el documento PDF fuente", type="pdf")
     # Si se carga un PDF, procesarlo
@@ -526,6 +534,20 @@ st.sidebar.write("\n")
 #     st.session_state.chat_history = []
 #     st.rerun()  # Recargar la aplicación para permitir la carga de un nuevo archivo
 #     st.info("Por favor, sube un nuevo archivo PDF para empezar a interactuar con el chatbot.")
+
+show_historial = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
+if show_historial:
+    st.sidebar.subheader("Historial de Chat")
+    if st.session_state.chat_history:
+        st.sidebar.write(f"Total de mensajes en el historial: {len(st.session_state.chat_history)}")
+        if len(st.session_state.chat_history) > 0:
+            st.sidebar.write("Último mensaje:")
+            last_message = st.session_state.chat_history[-1]
+            st.sidebar.write(f"{last_message['role']}: {last_message['content']}")
+    else:
+        st.sidebar.write("No hay mensajes en el historial de chat.")
+
+st.sidebar.write("\n")
 
 # Opcional: Botón para limpiar el historial de chat
 if st.sidebar.button("Limpiar Chat"):
