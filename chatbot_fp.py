@@ -454,32 +454,30 @@ st.sidebar.markdown("""
 """)
 
 # Mostrar información del archivo PDF y Excel
-show_Fuente = st.sidebar.checkbox("¿Mostrar datos del Corpus?")
-if show_Fuente:
+show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?", value=True)
+if show_datos:
     if st.session_state.excel_data is not None:
         st.sidebar.subheader("Fuente de Datos")
         st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
         st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
         st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
-        st.sidebar.markdown("""
-            El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
-            \n\n
-            Puedes hacer preguntas específicas sobre los ciclos formativos y el chatbot te proporcionará respuestas basadas en esta información.
-        """)
+        # st.sidebar.markdown("""
+        #     El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
+        #     \n\n
+        #     Puedes hacer preguntas específicas sobre los ciclos formativos y el chatbot te proporcionará respuestas basadas en esta información.
+        # """)
         #st.sidebar.write("Primeras filas del DataFrame:")
         #st.sidebar.dataframe(st.session_state.excel_data.head())
+        # Mostrar información del modelo de embeddings
+        st.sidebar.subheader("Modelo de Embeddings")
+        if st.session_state.model is not None:
+            st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
+        #     st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
+        # else:
+        #     st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
 else:
     st.sidebar.write("No se han cargado datos.")
 
-# Mostrar información del modelo de embeddings
-show_Modelo = st.sidebar.checkbox("¿Mostrar Modelo utilizado?")
-if show_Modelo:
-    st.sidebar.subheader("Modelo de Embeddings")
-    if st.session_state.model is not None:
-        st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
-        st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
-    else:
-        st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
 
 # Mostrar información del índice FAISS
 # if st.session_state.faiss_index is not None:
