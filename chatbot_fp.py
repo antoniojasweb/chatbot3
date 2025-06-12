@@ -329,6 +329,7 @@ df = extraer_informacion_pdf(FilePDF)
 # Descargar el logo del chatbot si no existe
 if not os.path.exists(FileLogo):
     descargar_logo(FileLogo)
+    image = Image.open(FileLogo)
 
 # Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
 #st.write(df.head())
@@ -340,6 +341,9 @@ if not os.path.exists(FileLogo):
 # -------------------------------------------------------------------
 # --- Configuración de la aplicación Streamlit ---
 st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
+
+# Mostrar el logo del chatbot
+st.image(image, caption='', width=200)
 
 st.title("📚 Chatbot de Ciclos Formativos")
 
@@ -426,10 +430,7 @@ if st.session_state.excel_data is not None and st.session_state.faiss_index is n
         st.session_state.chat_history.append({"role": "assistant", "content": response})
 
 # --- Configuración de la barra lateral y opciones adicionales ---
-# Mostrar el logo del chatbot
-image = Image.open(FileLogo)
 #st.image(image, caption='Chatbot de Ciclos Formativos', use_column_width=True)
-st.image(image, caption='', width=200)
 
 # Mostrar información del chatbot
 st.sidebar.header("Chatbot de Ciclos Formativos en Extremadura")
