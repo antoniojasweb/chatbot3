@@ -345,7 +345,8 @@ if "model" not in st.session_state:
 
 # Cargar el modelo de embeddings solo una vez
 if st.session_state.model is None:
-    st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
+    #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
+    st.write("Preparando el entorno (esto puede tardar unos segundos)...")
     st.session_state.model = load_embedding_model()
 
 #st.write("Trabajando según los datos del fichero: " + FilePDF)
@@ -453,21 +454,32 @@ st.sidebar.markdown("""
 """)
 
 # Mostrar información del archivo PDF y Excel
-if st.session_state.excel_data is not None:
-    st.sidebar.subheader("Datos Cargados")
-    st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
-    st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
-    #st.sidebar.write("Primeras filas del DataFrame:")
-    #st.sidebar.dataframe(st.session_state.excel_data.head())
+show_Fuente = st.sidebar.checkbox("¿Mostrar datos del Corpus?")
+if show_Fuente:
+    if st.session_state.excel_data is not None:
+        st.sidebar.subheader("Fuente de Datos")
+        st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
+        st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
+        st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
+        st.sidebar.markdown("""
+            El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
+            \n\n
+            Puedes hacer preguntas específicas sobre los ciclos formativos y el chatbot te proporcionará respuestas basadas en esta información.
+        """)
+        #st.sidebar.write("Primeras filas del DataFrame:")
+        #st.sidebar.dataframe(st.session_state.excel_data.head())
 else:
     st.sidebar.write("No se han cargado datos.")
 
-# Mostrar información del modelo y estado actual
-st.sidebar.subheader("Estado del Modelo")
-if st.session_state.model is not None:
-    st.sidebar.write("Modelo de embeddings cargado: `paraphrase-multilingual-MiniLM-L12-v2`")
-else:
-    st.sidebar.write("Modelo de embeddings no cargado.")
+# Mostrar información del modelo de embeddings
+show_Modelo = st.sidebar.checkbox("¿Mostrar Modelo utilizado?")
+if show_Modelo:
+    st.sidebar.subheader("Modelo de Embeddings")
+    if st.session_state.model is not None:
+        st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
+        st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
+    else:
+        st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
 
 # Mostrar información del índice FAISS
 # if st.session_state.faiss_index is not None:
