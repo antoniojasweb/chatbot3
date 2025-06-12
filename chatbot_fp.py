@@ -175,10 +175,22 @@ def load_embedding_model():
     Carga el modelo de embeddings pre-entrenado.
     Se usa un modelo multilingüe para mejor rendimiento con español.
     """
+    import time
+
+    progress_text = "Preparando el entorno (esto puede tardar unos segundos)..."
+    my_bar = st.progress(0, text=progress_text)
+
+    for percent_complete in range(100):
+        time.sleep(0.01)
+        my_bar.progress(percent_complete + 1, text=progress_text, bar_color="#4CAF50")
+
+    #time.sleep(1)
+    #my_bar.empty()
+
     #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
-    model = SentenceTransformer(ModeloEmbeddings)
+    #model = SentenceTransformer(ModeloEmbeddings)
     #st.write("Modelo de embeddings cargado.")
-    return model
+    return SentenceTransformer(ModeloEmbeddings)
 
 def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
     """
@@ -371,7 +383,7 @@ if st.session_state.excel_data is None:
 
         st.session_state.excel_data = df
         st.session_state.faiss_index, st.session_state.corpus = create_faiss_index(st.session_state.excel_data, st.session_state.model)
-        st.success("¡Chatbot iniciado correctamente! Ahora puedes hacer preguntas.")
+        st.success("¡Chatbot iniciado correctamente! Ahora puedes hacer preguntas.", icon="✅")
 
         # Limpiar historial de chat al cargar un nuevo archivo
         st.session_state.chat_history = []
@@ -391,7 +403,7 @@ for message in st.session_state.chat_history:
 if st.session_state.excel_data is not None and st.session_state.faiss_index is not None:
     user_query = st.chat_input("Haz tu pregunta sobre los ciclos formativos...")
     if user_query:
-        with st.spinner("Pensando..."):
+        with st.spinner("Pensando...", icon="🤔", show_time=True):
             response = ask_rag_model(
                 user_query,
                 st.session_state.faiss_index,
