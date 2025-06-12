@@ -578,7 +578,10 @@ if new_pdf:
 
 # Opcional: Botón para limpiar el historial de chat
 if st.sidebar.button("Limpiar Chat"):
-    st.session_state.messages = []
+    st.session_state.clear()  # Borra todas las variables de sesión
+    #st.session_state.messages = []
+    if not st.session_state.get("messages"):
+        st.write("Historial de chat vacío. 🎉")
     st.rerun()
 
 # Footer
