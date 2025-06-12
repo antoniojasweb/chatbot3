@@ -279,7 +279,7 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     {context}
     ---
 
-    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Muestra tantas entradas como valor tenga la variable top_k. Cada opción encontrada muéstrala en una línea separada, con el nombre del ciclo, instituto, municipio, provincia, grado y familia profesional.
+    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Cada opción encontrada muéstrala en una línea separada, con el nombre del ciclo, instituto, municipio, provincia, grado y familia profesional.
 
     Pregunta: {query}
 
@@ -296,7 +296,30 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     #st.write("Los datos encontrados a tu pregunta son:")
     #st.write(context)
 
+    evaluar_respuesta(context, query)
+
     return get_gemini_response(prompt_template)
+
+def evaluar_respuesta(respuesta_generada: str, context: str):
+    """
+    Evalúa la respuesta generada por el modelo.
+    Compara la respuesta con el contexto proporcionado.
+    """
+    # if respuesta and isinstance(respuesta, str):
+    #     return True
+    #     return False
+    # from sentence_transformers import SentenceTransformer
+    # import numpy as np
+
+    model_Eval = SentenceTransformer('all-MiniLM-L6-v2')
+
+    # Generar embeddings
+    context_embedding = model_Eval.encode(context)
+    response_embedding = model_Eval.encode(respuesta_generada)
+
+    # Calcular similitud (coseno)
+    similarity = np.dot(context_embedding, response_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(response_embedding))
+    print("Similitud entre contexto y respuesta:", similarity)
 
 # --- Función para convertir texto a audio y obtenerlo en base64 ---
 def text_to_audio_base64(text, lang='es'):
