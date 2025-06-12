@@ -348,9 +348,9 @@ st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 
 col1, col2 = st.columns([1,20])
 with col1:
-    st.image(image, width=60)
+    st.image(image, width=200)
 with col2:
-    st.title("📚 Chatbot de Ciclos Formativos")
+    st.title("Chatbot de Ciclos Formativos")
 
 # Inicializar el estado de la sesión si no existe
 if "chat_history" not in st.session_state:
