@@ -384,7 +384,7 @@ if st.session_state.excel_data is None:
 
         st.session_state.excel_data = df
         st.session_state.faiss_index, st.session_state.corpus = create_faiss_index(st.session_state.excel_data, st.session_state.model)
-        st.success("¡Chatbot iniciado correctamente! Ahora puedes hacer preguntas.", icon="✅")
+        st.success("¡Chatbot iniciado correctamente! Ahora puedes hacer preguntas.")
 
         # Limpiar historial de chat al cargar un nuevo archivo
         st.session_state.chat_history = []
@@ -404,7 +404,7 @@ for message in st.session_state.chat_history:
 if st.session_state.excel_data is not None and st.session_state.faiss_index is not None:
     user_query = st.chat_input("Haz tu pregunta sobre los ciclos formativos...")
     if user_query:
-        with st.spinner("Pensando...", icon="🤔", show_time=True):
+        with st.spinner("Pensando...", show_time=True):
             response = ask_rag_model(
                 user_query,
                 st.session_state.faiss_index,
@@ -467,14 +467,14 @@ st.sidebar.markdown("""
 """)
 
 # Mostrar información del archivo PDF y Excel
-#show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?")
-#if show_datos:
-st.sidebar.subheader("Información utilizada")
-st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
-st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
+show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?")
+if show_datos:
+    st.sidebar.subheader("Información utilizada")
+    st.sidebar.write(f"- Fuente: `{FilePDF}`")
+    #st.sidebar.write(f"- `{FileExcel}`")
 
-if st.session_state.excel_data is not None:
-    st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
+    if st.session_state.excel_data is not None:
+        st.sidebar.write(f"- Nº Ciclos Formativos: {len(st.session_state.excel_data)}")
         # st.sidebar.markdown("""
         #     El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
         #     \n\n
@@ -485,8 +485,10 @@ if st.session_state.excel_data is not None:
 
     # Mostrar información del modelo de embeddings
     #st.sidebar.subheader("Modelo de Embeddings")
-if st.session_state.model is not None:
-    st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
+
+    #if st.session_state.model is not None:
+    #    st.sidebar.write(f"- Modelo: `{ModeloEmbeddings}`")
+
     #     st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
     # else:
     #     st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
@@ -535,7 +537,7 @@ if new_pdf:
         # Limpiar historial de chat al cargar un nuevo archivo
         st.session_state.chat_history = []
 
-st.sidebar.write("\n")
+#st.sidebar.write("\n")
 
 # Mostrar el DataFrame cargado desde el PDF
 # if st.session_state.excel_data is not None:
@@ -560,19 +562,19 @@ st.sidebar.write("\n")
 #     st.rerun()  # Recargar la aplicación para permitir la carga de un nuevo archivo
 #     st.info("Por favor, sube un nuevo archivo PDF para empezar a interactuar con el chatbot.")
 
-show_historial = st.sidebar.checkbox("¿Mostrar el Historial del Chat?")
-if show_historial:
-    st.sidebar.subheader("Historial de Chat")
-    if st.session_state.chat_history:
-        st.sidebar.write(f"Total de mensajes en el historial: {len(st.session_state.chat_history)}")
-        if len(st.session_state.chat_history) > 0:
-            st.sidebar.write("Último mensaje:")
-            last_message = st.session_state.chat_history[-1]
-            st.sidebar.write(f"{last_message['role']}: {last_message['content']}")
-    else:
-        st.sidebar.write("No hay mensajes en el historial de chat.")
+#show_historial = st.sidebar.checkbox("¿Mostrar el Historial del Chat?")
+#if show_historial:
+#    st.sidebar.subheader("Historial de Chat")
+#    if st.session_state.chat_history:
+#        st.sidebar.write(f"Total de mensajes en el historial: {len(st.session_state.chat_history)}")
+#        if len(st.session_state.chat_history) > 0:
+#            st.sidebar.write("Último mensaje:")
+#            last_message = st.session_state.chat_history[-1]
+#            st.sidebar.write(f"{last_message['role']}: {last_message['content']}")
+#    else:
+#        st.sidebar.write("No hay mensajes en el historial de chat.")
 
-st.sidebar.write("\n")
+#st.sidebar.write("\n")
 
 # Opcional: Botón para limpiar el historial de chat
 if st.sidebar.button("Limpiar Chat"):
