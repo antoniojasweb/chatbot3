@@ -1,5 +1,7 @@
 # -------------------------------------------------------------------
 #pip install streamlit pandas faiss-cpu sentence-transformers requests
+#pip install openai langchain PyPDF2 langdetect langchain-community
+#pip install spacy scikit-learn openpyxl pymupdf gtts
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -11,31 +13,30 @@ import os
 import requests
 
 import streamlit as st
-import pandas as pd
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 import json
-import requests
-import os
+from PIL import Image
 
-import streamlit as st
+# Para la conversión de texto a voz
+# pip install gtts
 from gtts import gTTS
 import io  # Necesario para manejar el buffer de audio
 import base64 # Necesario para incrustar audio directamente en HTML
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-# Definición de rutas y ficheros de datos
+# --- Definición de rutas y ficheros de datos ---
 url = "https://raw.githubusercontent.com/antoniojasweb/chatbot/main/pdf/"
 FilePDF = "25_26_OFERTA_por_Familias.pdf"
 FileExcel = "oferta_formativa_completa.xlsx"
+FileLogo = "logo.jpg"
 
-# Otros Parámetros de configuración
+# --- Modelo de embeddings ---
+# Otro modelo de Sentence Transformers, para Ingés: 'all-MiniLM-L6-v2'
 ModeloEmbeddings = 'paraphrase-multilingual-MiniLM-L12-v2'
-# -------------------------------------------------------------------
 
-# -------------------------------------------------------------------
 # --- Configuración de la API de Gemini (Desde Colab, puedes dejar apiKey vacío para que Canvas lo gestione) ---
 # Si quieres usar modelos diferentes a gemini-2.0-flash o imagen-3.0-generate-002, proporciona una clave API aquí. De lo contrario, déjalo como está.
 API_KEY = "AIzaSyCf_fP-atrKzMJGwUgMCdHReTQtPoXKW8o"
@@ -50,6 +51,20 @@ def color_to_rgb(color_int):
     g = (color_int >> 8) & 255
     b = color_int & 255
     return (r, g, b)
+
+# Descargar el fichero del logo del chatbot
+def descargar_logo(fichero_logo):
+    FileURL = url + fichero_logo
+    if not os.path.exists(fichero_logo):
+        response = requests.get(FileURL)
+        # Verificamos que la solicitud fue exitosa
+        if response.status_code == 200:
+            # Abrimos el archivo en modo de lectura binaria
+            with open(FileLogo, 'wb') as file:
+                file.write(response.content)
+            #print("Logo descargado y guardado localmente.")
+        #else:
+            #print(f"Error al descargar el logo: {response.status_code}")
 
 # Descargar fichero PDF desde URL
 def descargar_pdf(fichero_pdf):
@@ -67,6 +82,10 @@ def descargar_pdf(fichero_pdf):
 
 # Extraer información del PDF y guardarla en un DataFrame
 def extraer_informacion_pdf(fichero_pdf):
+    # Comprobar si el archivo Excel ya existe, y lo eliminamos, para generar uno nuevo
+    if os.path.exists(FileExcel):
+        os.remove(FileExcel)
+
     # Abrir el PDF
     print("Fichero PDF procesado: " + fichero_pdf)
     doc = fitz.open(fichero_pdf)
@@ -175,22 +194,9 @@ def load_embedding_model():
     Carga el modelo de embeddings pre-entrenado.
     Se usa un modelo multilingüe para mejor rendimiento con español.
     """
-    # import time
-
-    # progress_text = "Preparando el entorno (esto puede tardar unos segundos)..."
-    # my_bar = st.progress(0, text=progress_text)
-
-    # for percent_complete in range(100):
-    #     time.sleep(0.01)
-    #     my_bar.progress(percent_complete + 1, text=progress_text, bar_color="#4CAF50")
-
-    #time.sleep(1)
-    #my_bar.empty()
-
     #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
     model = SentenceTransformer(ModeloEmbeddings)
     #st.write("Modelo de embeddings cargado.")
-    #return SentenceTransformer(ModeloEmbeddings)
     return model
 
 def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
@@ -317,21 +323,17 @@ def text_to_audio_base64(text, lang='es'):
 if not os.path.exists(FilePDF):
     descargar_pdf(FilePDF)
 
-if os.path.exists(FileExcel):
-     os.remove(FileExcel)
+# Extraer información del PDF y crear el DataFrame
+df = extraer_informacion_pdf(FilePDF)
 
-# Comprobar si el archivo Excel ya existe, si no, extraer información del PDF y crear el DataFrame
-# Si el archivo Excel ya existe, cargarlo directamente
-if not os.path.exists(FileExcel):
-    df = extraer_informacion_pdf(FilePDF)
-#else:
-#    df = pd.read_excel(FileExcel)
+# Descargar el logo del chatbot si no existe
+if not os.path.exists(FileLogo):
+    descargar_logo(FileLogo)
 
-    # Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
-    #st.write(df.head())
-    #st.dataframe(df.head())  # Alternativa para mostrar el DataFrame de forma interactiva
-    #st.write("Datos cargados desde el archivo Excel existente.")
-
+# Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
+#st.write(df.head())
+#st.dataframe(df.head())  # Alternativa para mostrar el DataFrame de forma interactiva
+#st.write("Datos cargados desde el archivo Excel existente.")
 #df.head()
 # -------------------------------------------------------------------
 
@@ -340,8 +342,6 @@ if not os.path.exists(FileExcel):
 st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 
 st.title("📚 Chatbot de Ciclos Formativos")
-#st.subheader("Trabajando según los datos del fichero: " + FilePDF)
-#st.markdown("¡Sube un archivo Excel con información de ciclos formativos y pregúntame lo que quieras sobre ellos!")
 
 # Inicializar el estado de la sesión si no existe
 if "chat_history" not in st.session_state:
@@ -355,24 +355,14 @@ if "corpus" not in st.session_state:
 if "model" not in st.session_state:
     st.session_state.model = None
 
-
 # Cargar el modelo de embeddings solo una vez
 if st.session_state.model is None:
-    #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
+    # Mostrar mensaje de preparación del entorno
     st.write("Preparando el entorno (esto puede tardar unos segundos)...")
     st.session_state.model = load_embedding_model()
 
-#st.write("Trabajando según los datos del fichero: " + FilePDF)
-#st.markdown("Trabajando según los datos del fichero: " + FilePDF)
-
-# Carga de archivo Excel
-#uploaded_file = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
-#if uploaded_file is not None and st.session_state.excel_data is None:
-
 if st.session_state.excel_data is None:
-    #st.write("Archivo Excel subido. Procesando...")
     try:
-        #df = pd.read_excel(uploaded_file)
         # Asegurarse de que las columnas esperadas existan o manejar su ausencia
         required_cols = ['Familia Profesional', 'Grado', 'Código Ciclo', 'Nombre Ciclo', 'Provincia', 'Municipio', 'Instituto', 'Curso', 'Turno', 'Bilingüe', 'Nuevo']
         missing_cols = [col for col in required_cols if col not in df.columns]
@@ -393,7 +383,6 @@ if st.session_state.excel_data is None:
         st.session_state.excel_data = None
         st.session_state.faiss_index = None
         st.session_state.corpus = None
-
 
 # Mostrar historial de chat
 for message in st.session_state.chat_history:
@@ -436,23 +425,12 @@ if st.session_state.excel_data is not None and st.session_state.faiss_index is n
 
         st.session_state.chat_history.append({"role": "assistant", "content": response})
 
-# else:
-#     st.info("Por favor, sube un archivo PDF para empezar a interactuar con el chatbot.")
-#     st.markdown("""
-#     **Formato de ejemplo para el Excel:**
-#     Tu archivo Excel debe tener, al menos, las siguientes columnas para un funcionamiento óptimo:
-#     - `Nombre Ciclo`
-#     - `Grado` (Ej: Grado Medio, Grado Superior)
-#     - `Familia Profesional`
-#     - `Instituto`
-#     - `Municipio`
-#     - `Provincia`
-#     - `Turno`
-#     """)
-
 # --- Configuración de la barra lateral y opciones adicionales ---
-# Configuración de la barra lateral
-#st.sidebar.title("Opciones del Chatbot")
+# Mostrar el logo del chatbot
+image = Image.open(FileLogo)
+st.sidebar.image(image, caption='Chatbot de Ciclos Formativos', use_column_width=True)
+
+# Mostrar información del chatbot
 st.sidebar.header("Chatbot de Ciclos Formativos en Extremadura")
 st.sidebar.markdown("""
     Este chatbot te permite hacer preguntas sobre los ciclos formativos en Extremadura basándose en datos extraídos del PDF indicado. \n
@@ -475,50 +453,9 @@ if show_datos:
 
     if st.session_state.excel_data is not None:
         st.sidebar.write(f"- Nº Ciclos Formativos: {len(st.session_state.excel_data):,.0f}".replace(",", "."))
-        # st.sidebar.markdown("""
-        #     El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
-        #     \n\n
-        #     Puedes hacer preguntas específicas sobre los ciclos formativos y el chatbot te proporcionará respuestas basadas en esta información.
-        # """)
-        #st.sidebar.write("Primeras filas del DataFrame:")
-        #st.sidebar.dataframe(st.session_state.excel_data.head())
-
-    # Mostrar información del modelo de embeddings
-    #st.sidebar.subheader("Modelo de Embeddings")
 
     #if st.session_state.model is not None:
     #    st.sidebar.write(f"- Modelo: `{ModeloEmbeddings}`")
-
-    #     st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
-    # else:
-    #     st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
-# else:
-#     st.sidebar.write("No se han cargado datos.")
-
-
-# Mostrar información del índice FAISS
-# if st.session_state.faiss_index is not None:
-#     st.sidebar.subheader("Índice FAISS")
-#     st.sidebar.write("Índice FAISS creado con éxito.")
-# else:
-#     st.sidebar.write("Índice FAISS no creado. Asegúrate de cargar un archivo Excel válido.")
-
-# Mostrar información del corpus
-# if st.session_state.corpus is not None:
-#     st.sidebar.subheader("Corpus de Documentos")
-#     st.sidebar.write(f"Total de documentos en el corpus: {len(st.session_state.corpus)}")
-# else:
-#     st.sidebar.write("Corpus no disponible. Asegúrate de cargar un archivo Excel válido.")
-
-# --- Instrucciones de uso ---
-# Mostrar instrucciones de uso
-# st.sidebar.subheader("Instrucciones de Uso")
-# st.sidebar.markdown("""
-#     1. **Sube un archivo PDF**: Asegúrate de que el archivo contenga información sobre ciclos formativos en Extremadura.
-#     2. **Haz preguntas**: Utiliza el campo de entrada para hacer preguntas sobre los ciclos formativos.
-#     3. **Explora el historial de chat**: Puedes ver las preguntas y respuestas anteriores en el historial de chat.
-#     4. **Opciones adicionales**: Puedes cargar un nuevo archivo Excel o limpiar el historial de chat desde la barra lateral.
-# """)
 
 new_pdf = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
 if new_pdf:
@@ -537,30 +474,12 @@ if new_pdf:
         # Limpiar historial de chat al cargar un nuevo archivo
         st.session_state.chat_history = []
 
-#st.sidebar.write("\n")
-
 # Mostrar el DataFrame cargado desde el PDF
 # if st.session_state.excel_data is not None:
 #     st.subheader("Datos Cargados desde el PDF")
 #     st.dataframe(st.session_state.excel_data.head())  # Mostrar las primeras filas del DataFrame
 # else:
 #     st.info("Por favor, sube un archivo PDF para empezar a interactuar con el chatbot.")
-
-
-# Sidebar para opciones adicionales
-#st.sidebar.header("Opciones del Chatbot")
-# st.sidebar.markdown("""
-#     - **Cargar un nuevo archivo PDF**: Si quieres cambiar los datos, sube un nuevo archivo.
-#     - **Limpiar el historial de chat**: Puedes limpiar el historial de chat si lo deseas.
-# """)
-# Opcional: Botón para cargar un nuevo archivo Excel
-# if st.sidebar.button("Cargar nuevo archivo PDF"):
-#     st.session_state.excel_data = None
-#     st.session_state.faiss_index = None
-#     st.session_state.corpus = None
-#     st.session_state.chat_history = []
-#     st.rerun()  # Recargar la aplicación para permitir la carga de un nuevo archivo
-#     st.info("Por favor, sube un nuevo archivo PDF para empezar a interactuar con el chatbot.")
 
 #show_historial = st.sidebar.checkbox("¿Mostrar el Historial del Chat?")
 #if show_historial:
@@ -574,14 +493,12 @@ if new_pdf:
 #    else:
 #        st.sidebar.write("No hay mensajes en el historial de chat.")
 
-#st.sidebar.write("\n")
-
 # Opcional: Botón para limpiar el historial de chat
-if st.sidebar.button("Limpiar Chat"):
+if st.sidebar.button("Reiniciar Chat"):
     st.session_state.clear()  # Borra todas las variables de sesión
     #st.session_state.messages = []
-    if not st.session_state.get("messages"):
-        st.write("Historial de chat vacío. 🎉")
+    # if not st.session_state.get("messages"):
+    #     st.write("Historial de chat vacío. 🎉")
     st.rerun()
 
 # Footer
