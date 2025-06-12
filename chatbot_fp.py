@@ -535,7 +535,7 @@ st.sidebar.write("\n")
 #     st.rerun()  # Recargar la aplicación para permitir la carga de un nuevo archivo
 #     st.info("Por favor, sube un nuevo archivo PDF para empezar a interactuar con el chatbot.")
 
-show_historial = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
+show_historial = st.sidebar.checkbox("¿Mostrar el Historial del Chat?")
 if show_historial:
     st.sidebar.subheader("Historial de Chat")
     if st.session_state.chat_history:
