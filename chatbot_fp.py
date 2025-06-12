@@ -279,7 +279,7 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     {context}
     ---
 
-    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Cada opción encontrada muéstrala en una línea separada, con el nombre del ciclo, instituto, municipio, provincia, grado y familia profesional.
+    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Cada opción encontrada muéstrala en una línea separada.
 
     Pregunta: {query}
 
