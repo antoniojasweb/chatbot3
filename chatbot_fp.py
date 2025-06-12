@@ -346,7 +346,7 @@ st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 #st.image(image, caption='Chatbot-FP', width=200)
 #st.title("📚 Chatbot de Ciclos Formativos")
 
-col1, col2 = st.columns([1,20])
+col1, col2 = st.columns([1,2])
 with col1:
     st.image(image, width=200)
 with col2:
