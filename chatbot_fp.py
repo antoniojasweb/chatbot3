@@ -175,22 +175,23 @@ def load_embedding_model():
     Carga el modelo de embeddings pre-entrenado.
     Se usa un modelo multilingüe para mejor rendimiento con español.
     """
-    import time
+    # import time
 
-    progress_text = "Preparando el entorno (esto puede tardar unos segundos)..."
-    my_bar = st.progress(0, text=progress_text)
+    # progress_text = "Preparando el entorno (esto puede tardar unos segundos)..."
+    # my_bar = st.progress(0, text=progress_text)
 
-    for percent_complete in range(100):
-        time.sleep(0.01)
-        my_bar.progress(percent_complete + 1, text=progress_text, bar_color="#4CAF50")
+    # for percent_complete in range(100):
+    #     time.sleep(0.01)
+    #     my_bar.progress(percent_complete + 1, text=progress_text, bar_color="#4CAF50")
 
     #time.sleep(1)
     #my_bar.empty()
 
     #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
-    #model = SentenceTransformer(ModeloEmbeddings)
+    model = SentenceTransformer(ModeloEmbeddings)
     #st.write("Modelo de embeddings cargado.")
-    return SentenceTransformer(ModeloEmbeddings)
+    #return SentenceTransformer(ModeloEmbeddings)
+    return model
 
 def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
     """
@@ -466,13 +467,13 @@ st.sidebar.markdown("""
 """)
 
 # Mostrar información del archivo PDF y Excel
-show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?")
-if show_datos:
-    if st.session_state.excel_data is not None:
-        st.sidebar.subheader("Información utilizada")
-        st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
-        st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
-        st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
+#show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?")
+#if show_datos:
+if st.session_state.excel_data is not None:
+    st.sidebar.subheader("Información utilizada")
+    st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
+    st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
+    st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
         # st.sidebar.markdown("""
         #     El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
         #     \n\n
@@ -483,8 +484,8 @@ if show_datos:
 
     # Mostrar información del modelo de embeddings
     #st.sidebar.subheader("Modelo de Embeddings")
-    if st.session_state.model is not None:
-        st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
+if st.session_state.model is not None:
+    st.sidebar.write(f"Modelo de embeddings cargado: `{ModeloEmbeddings}`")
     #     st.sidebar.write("Este modelo se utiliza para generar representaciones vectoriales de los textos, lo que permite buscar información relevante en el corpus.")
     # else:
     #     st.sidebar.write("Modelo de embeddings no cargado. Asegúrate de que el modelo se ha inicializado correctamente.")
