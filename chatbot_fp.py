@@ -206,7 +206,7 @@ def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
     #st.write("Creando embeddings e índice FAISS...")
     # Concatenar las columnas relevantes en una sola cadena de texto para el embedding
     df['combined_text'] = df.apply(
-        lambda row: f"Ciclo: {row.get('Nombre Ciclo', '')}. Nivel: {row.get('Grado', '')}. Familia: {row.get('Familia Profesional', '')}. Centro: {row.get('Instituto', '')}. Ciudad: {row.get('Municipio', '')}. Provincia: {row.get('Provincia', '')}. Turno: {row.get('Turno', '')}",
+        lambda row: f"Nombre Ciclo: {row.get('Nombre Ciclo', '')}. Grado: {row.get('Grado', '')}. Familia Profesional: {row.get('Familia Profesional', '')}. Instituto: {row.get('Instituto', '')}. Municipio: {row.get('Municipio', '')}. Provincia: {row.get('Provincia', '')}. Turno: {row.get('Turno', '')}",
         axis=1
     )
 
