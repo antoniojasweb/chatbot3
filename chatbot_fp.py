@@ -343,7 +343,7 @@ if not os.path.exists(FileLogo):
 st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 
 # Mostrar el logo del chatbot
-st.image(image, caption='', width=200)
+st.image(image, caption='Chatbot-FP', width=200)
 
 st.title("📚 Chatbot de Ciclos Formativos")
 
