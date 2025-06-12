@@ -351,7 +351,7 @@ with col1:
     st.image(image, width=200)
 with col2:
     #st.title("Chatbot de Ciclos Formativos")
-    st.metrica("Chatbot de Ciclos Formativos", value = 500)
+    st.metric("Chatbot de Ciclos Formativos", value = 500)
 
 # Inicializar el estado de la sesión si no existe
 if "chat_history" not in st.session_state:
