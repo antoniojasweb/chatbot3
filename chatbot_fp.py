@@ -325,7 +325,7 @@ if not os.path.exists(FilePDF):
 if not os.path.exists(FileExcel):
     df = extraer_informacion_pdf(FilePDF)
 else:
-    df = pd.read_excel(FileExcel, engine="openpyxl")
+    df = pd.read_excel(FileExcel)
 
     # Mostrar las primeras filas del DataFrame para verificar que se ha cargado correctamente
     #st.write(df.head())
