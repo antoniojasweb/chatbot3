@@ -321,11 +321,10 @@ def evaluar_respuesta(respuesta_generada: str, context: str):
     similarity = np.dot(context_embedding, response_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(response_embedding))
     print("Similitud entre contexto y respuesta:", similarity)
     # Si la similitud es alta, la respuesta es relevante
-    if similarity > 0.7:  # Umbral de similitud, puedes ajustarlo
+    if similarity > 0.5:  # Umbral de similitud, puedes ajustarlo
         st.success("La respuesta generada es relevante y está basada en la información proporcionada.")
     else:
         st.warning("La respuesta generada puede no estar completamente alineada con la información proporcionada. Por favor, verifica la respuesta.")
-        # Aquí podrías registrar el caso o tomar alguna acción adicional si es necesario
 # -------------------------------------------------------------------
 
 # --- Función para convertir texto a audio y obtenerlo en base64 ---
