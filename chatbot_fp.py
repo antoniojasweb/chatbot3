@@ -469,10 +469,11 @@ st.sidebar.markdown("""
 # Mostrar información del archivo PDF y Excel
 #show_datos = st.sidebar.checkbox("¿Mostrar datos utilizados?")
 #if show_datos:
+st.sidebar.subheader("Información utilizada")
+st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
+st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
+
 if st.session_state.excel_data is not None:
-    st.sidebar.subheader("Información utilizada")
-    st.sidebar.write(f"Archivo PDF fuente: `{FilePDF}`")
-    st.sidebar.write(f"Archivo Excel generado: `{FileExcel}`")
     st.sidebar.write(f"Total de ciclos formativos: {len(st.session_state.excel_data)}")
         # st.sidebar.markdown("""
         #     El archivo PDF contiene información sobre los ciclos formativos en Extremadura, incluyendo detalles sobre familias profesionales, grados, centros educativos y más.
