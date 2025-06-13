@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------
 #pip install streamlit pandas faiss-cpu sentence-transformers requests
-#pip install openai langchain PyPDF2 langdetect langchain-community
+#pip install openai langchain PyPDF2 langdetect langchain-community sckit-learn
 #pip install spacy scikit-learn openpyxl pymupdf gtts
 # -------------------------------------------------------------------
 
@@ -18,6 +18,8 @@ import faiss
 import numpy as np
 import json
 from PIL import Image
+from sklearn.preprocessing import normalize
+from sklearn.preprocessing import StandardScaler
 
 # Para la conversión de texto a voz
 # pip install gtts
@@ -31,11 +33,14 @@ import base64 # Necesario para incrustar audio directamente en HTML
 url = "https://raw.githubusercontent.com/antoniojasweb/chatbot/main/pdf/"
 FilePDF = "25_26_OFERTA_por_Familias.pdf"
 FileExcel = "oferta_formativa_completa.xlsx"
-FileLogo = "logo.jpg"
+FileLogo = "Logo.png"
 
 # --- Modelo de embeddings ---
 # Otro modelo de Sentence Transformers, para Ingés: 'all-MiniLM-L6-v2'
 ModeloEmbeddings = 'paraphrase-multilingual-MiniLM-L12-v2'
+ModeloEvaluacion = 'all-mpnet-base-v2'  # Modelo para evaluación de respuestas
+# Otros posibles modelos: all-MiniLM-L6-v2, sentence-t5-base, e5-large-v2, etc
+
 
 # --- Configuración de la API de Gemini (Desde Colab, puedes dejar apiKey vacío para que Canvas lo gestione) ---
 # Si quieres usar modelos diferentes a gemini-2.0-flash o imagen-3.0-generate-002, proporciona una clave API aquí. De lo contrario, déjalo como está.
@@ -90,13 +95,18 @@ def extraer_informacion_pdf(fichero_pdf):
     print("Fichero PDF procesado: " + fichero_pdf)
     doc = fitz.open(fichero_pdf)
 
-    # Variables de contexto
+    # Inicializar una lista para almacenar los datos
     data = []
     familia_actual = ""
     grado_actual = ""
     codigo_ciclo = ""
     nombre_ciclo = ""
     provincia_actual = ""
+    turno = "Diurno"  # Valor por defecto
+    instituto = ""
+    municipio = ""
+    bilingue = "No"
+    nuevo = "No"
 
     # Recorrer cada página y extraer información
     for page in doc:
@@ -132,49 +142,72 @@ def extraer_informacion_pdf(fichero_pdf):
                     # Centro educativo (normal, negro, contiene ' - ' al menos 2 veces)
                     elif text.count(" - ") >= 2 and not is_bold and rgb == (0, 0, 0):
                         try:
-                            municipio, instituto, curso_raw = text.split(" - ", 2)
+                            municipio, instituto, curso_raw = text.split(" - ")
+
+                            if "acreditado" in text:
+                                instituto += " (Acreditado en Calidad)"
+
+                            if "1ºC" in text:
+                                curso = "1ºC"
+                            elif "2ºC" in text:
+                                curso = "2ºC"
+
+                            #print(text,curso)
 
                             # Extras
-                            curso = curso_raw
-                            turno = "Diurno"
-                            bilingue = "No"
-                            nuevo = "No"
+                            # curso = curso_raw
+                            # bilingue = "No"
+                            # nuevo = "No"
 
-                            if "Vespertino" in curso:
-                                turno = "Vespertino"
-                            if "Bilingüe" in curso or "Bilingue" in curso:
-                                bilingue = "Sí"
-                            if "Nuevo" in curso:
-                                nuevo = "Sí"
+                            # if "Vespertino" in curso:
+                            #     turno = "Vespertino"
+                            # if "Bilingüe" in curso or "Bilingue" in curso:
+                            #     bilingue = "Sí"
+                            # if "Nuevo" in curso:
+                            #     nuevo = "Sí"
 
                             # Limpiar texto del campo curso
-                            curso = (curso
-                                    .replace("Vespertino", "")
-                                    .replace("Diurno", "")
-                                    .replace("Nuevo", "")
-                                    .replace("Bilingüe: IN", "")
-                                    .strip())
+                            # curso = (curso
+                            #         .replace("Vespertino", "")
+                            #         .replace("Diurno", "")
+                            #         .replace("Nuevo", "")
+                            #         .replace("Bilingüe: IN", "")
+                            #         .strip())
 
-                            # Añadir fila
+                        except ValueError:
+                            continue  # línea malformada
+
+                    elif text in ['Vespertino','Diurno','Bilingüe', 'Bilingue', 'Nuevo']:
+                        if 'Vespertino' in text:
+                            turno = 'Vespertino'
+                        elif 'Diurno' in text:
+                            turno = 'Diurno'
+                        elif text in ['Bilingüe', 'Bilingue']:
+                            bilingue = 'Sí'
+                        elif 'Nuevo' in text:
+                            nuevo = 'Sí'
+
+                        # Añadir fila: Sólo si el curso es de 1ºC
+                        if "1ºC" in curso:
                             data.append({
-                                "Familia Profesional": familia_actual,
-                                "Grado": grado_actual,
-                                "Código Ciclo": codigo_ciclo,
-                                "Nombre Ciclo": nombre_ciclo,
-                                "Provincia": provincia_actual,
-                                "Municipio": municipio.strip(),
+                                "Familia Profesional": familia_actual.title().strip(),
+                                "Código Ciclo": codigo_ciclo.strip(),
+                                "Nombre Ciclo": nombre_ciclo.title().strip(),
+                                "Grado": grado_actual.strip(),
                                 "Instituto": instituto.strip(),
-                                "Curso": curso.strip(),
+                                "Municipio": municipio.title().strip(),
+                                "Provincia": provincia_actual.title().strip(),
+                                #"Curso": curso.strip(),
                                 "Turno": turno,
                                 "Bilingüe": bilingue,
                                 "Nuevo": nuevo
                             })
 
-                        except ValueError:
-                            continue  # línea malformada
-
     # Convertir a DataFrame
     df = pd.DataFrame(data)
+
+    # ordenar por la columna Municipio y Código Ciclom, en orden ascendente
+    df.sort_values(['Familia Profesional','Código Ciclo'], ascending=[True, True], inplace=True)
 
     # Exportar a Excel
     df.to_excel(FileExcel, index=False)
@@ -192,7 +225,6 @@ def extraer_informacion_pdf(fichero_pdf):
 def load_embedding_model():
     """
     Carga el modelo de embeddings pre-entrenado.
-    Se usa un modelo multilingüe para mejor rendimiento con español.
     """
     #st.write("Cargando modelo de embeddings (esto puede tardar unos segundos)...")
     model = SentenceTransformer(ModeloEmbeddings)
@@ -214,12 +246,24 @@ def create_faiss_index(df: pd.DataFrame, model: SentenceTransformer):
     df['combined_text'] = df['combined_text'].fillna('')
 
     corpus = df['combined_text'].tolist()
+    #embeddings = model.encode(corpus, show_progress_bar=True, convert_to_numpy=True, normalize_embeddings=True)
+
     embeddings = model.encode(corpus, show_progress_bar=True)
+    # Normalizar los embeddings, para mejorar la búsqueda de similitud: L2 normalization
+    embeddings_normalized = normalize(embeddings, norm='l2')
+
+    # Escalar los embeddings para mejorar la precisión de FAISS: Opcional, pero recomendado
+    # Si los embeddings ya están normalizados, este paso es redundante
+    # Aunque FAISS no requiere escalado, puede ayudar en algunos casos
+    # Normalizar los embeddings para que tengan media 0 y desviación estándar 1
+    # Esto es opcional, pero puede mejorar la precisión de búsqueda
+    #scaler = StandardScaler()
+    #embeddings_scaled = scaler.fit_transform(embeddings_normalized)
 
     # Crear un índice FAISS Flat (Simple)
-    dimension = embeddings.shape[1]
+    dimension = embeddings_normalized.shape[1]
     index = faiss.IndexFlatL2(dimension)
-    index.add(np.array(embeddings).astype('float32')) # FAISS requiere float32
+    index.add(np.array(embeddings_normalized).astype('float32')) # FAISS requiere float32
 
     #st.write("Índice FAISS creado.")
     return index, corpus # Devolvemos también el corpus para poder mapear los resultados
@@ -250,7 +294,7 @@ def get_gemini_response(prompt: str):
         st.error(f"Ocurrió un error inesperado: {e}")
         return "Lo siento, ocurrió un error inesperado al procesar tu solicitud."
 
-def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, df: pd.DataFrame, top_k: int = 10):
+def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, df: pd.DataFrame, top_k: int = None):
     """
     Realiza la consulta RAG:
     1. Embed de la consulta.
@@ -258,6 +302,10 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     3. Construye un prompt contextualizado para el LLM.
     4. Llama al LLM para generar la respuesta.
     """
+
+    if top_k is None:
+        top_k = len(corpus)
+
     query_embedding = model.encode([query]).astype('float32')
 
     # Realiza la búsqueda en FAISS
@@ -279,7 +327,7 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     {context}
     ---
 
-    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Cada opción encontrada muéstrala en una línea separada.
+    Basándote ÚNICAMENTE en la información proporcionada anteriormente y en tu conocimiento general, responde a la siguiente pregunta de forma concisa y útil. Si la información proporcionada no es suficiente para responder a la pregunta, indícalo. Muestra la información de forma clara y estructurada, incluyendo detalles como el nombre del ciclo, grado, instituto, municipio, provincia y familia profesional si es relevante. Agrupa los datos por instituto, si es posible.
 
     Pregunta: {query}
 
@@ -290,8 +338,8 @@ def ask_rag_model(query: str, index, corpus: list, model: SentenceTransformer, d
     st.session_state.chat_history.append({"role": "assistant", "content": f"Buscando información relacionada con '{query}'..."})
 
     # Muestra los documentos recuperados para depuración o información al usuario
-    with st.expander("Ver información recuperada: " + str(top_k) + " opciones más relevantes"):
-        st.write(retrieved_docs_df[['Nombre Ciclo', 'Grado', 'Instituto', 'Municipio', 'Provincia', 'Familia Profesional']])
+    #with st.expander("Ver información recuperada: " + str(top_k) + " opciones más relevantes"):
+    #    st.write(retrieved_docs_df[['Nombre Ciclo', 'Grado', 'Instituto', 'Municipio', 'Provincia', 'Familia Profesional']])
 
     #st.write("Los datos encontrados a tu pregunta son:")
     #st.write(context)
@@ -311,20 +359,45 @@ def evaluar_respuesta(respuesta_generada: str, context: str):
     # from sentence_transformers import SentenceTransformer
     # import numpy as np
 
-    model_Eval = SentenceTransformer('all-MiniLM-L6-v2')
+    # Cargar el modelo de evaluación
+    model_Eval = SentenceTransformer(ModeloEvaluacion)
+
+    # print(f"response: {response}")
+    # print(f"context: {context}")
+    # assert response, "Response is empty"
+    # assert context, "Context is empty"
 
     # Generar embeddings
-    context_embedding = model_Eval.encode(context)
-    response_embedding = model_Eval.encode(respuesta_generada)
+    context_embedding = model_Eval.encode(context, convert_to_numpy=True, normalize_embeddings=True)
+    response_embedding = model_Eval.encode(respuesta_generada, convert_to_numpy=True, normalize_embeddings=True)
+
+    # Normalizar los embeddings
+    #context_embedding = context_embedding / np.linalg.norm(context_embedding)
+    #response_embedding = response_embedding / np.linalg.norm(response_embedding)
 
     # Calcular similitud (coseno)
-    similarity = np.dot(context_embedding, response_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(response_embedding))
+    #similarity = np.dot(context_embedding, response_embedding) / (np.linalg.norm(context_embedding) * np.linalg.norm(response_embedding))
+    similarity = np.dot(context_embedding, response_embedding)
     print("Similitud entre contexto y respuesta:", similarity)
+
+    # from bert_score import score
+
+    # P, R, F1 = score([respuesta_generada], [context], lang="es")
+    # print(f"BERTScore (F1): {F1.mean().item()}")
+
+    # from rouge_score import rouge_scorer
+
+    # scorer = rouge_scorer.RougeScorer(['rouge1', 'rougeL'], use_stemmer=True)
+    # scores = scorer.score(context, respuesta_generada)
+    # print(f"ROUGE-L score: {scores['rougeL'].fmeasure}")
+
     # Si la similitud es alta, la respuesta es relevante
-    if similarity > 0.5:  # Umbral de similitud, puedes ajustarlo
-        st.success("La respuesta generada es relevante y está basada en la información proporcionada.")
+    if similarity > 0.6:  # Umbral de similitud, puedes ajustarlo
+        #st.success("La respuesta generada es relevante y está basada en la información proporcionada.")
+        st.success(" ")
     else:
-        st.warning("La respuesta generada puede no estar completamente alineada con la información proporcionada. Por favor, verifica la respuesta.")
+        #st.warning("La respuesta generada puede no estar completamente alineada con la información proporcionada. Por favor, verifica la respuesta.")
+        st.warning(" ")
 # -------------------------------------------------------------------
 
 # --- Función para convertir texto a audio y obtenerlo en base64 ---
@@ -377,7 +450,7 @@ st.set_page_config(page_title="Chatbot de Ciclos Formativos", layout="centered")
 
 col1, col2 = st.columns([1,2])
 with col1:
-    st.image(image, width=200)
+    st.image(image, width=150)
 with col2:
     st.title("Ciclos Formativos en Extremadura")
 
@@ -402,7 +475,7 @@ if st.session_state.model is None:
 if st.session_state.excel_data is None:
     try:
         # Asegurarse de que las columnas esperadas existan o manejar su ausencia
-        required_cols = ['Familia Profesional', 'Grado', 'Código Ciclo', 'Nombre Ciclo', 'Provincia', 'Municipio', 'Instituto', 'Curso', 'Turno', 'Bilingüe', 'Nuevo']
+        required_cols = ['Familia Profesional', 'Grado', 'Código Ciclo', 'Nombre Ciclo', 'Instituto', 'Municipio', 'Provincia', 'Turno', 'Bilingüe', 'Nuevo']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             st.warning(f"Columnas faltantes en el Excel: {', '.join(missing_cols)}. El chatbot podría no funcionar correctamente.")
@@ -430,7 +503,32 @@ for message in st.session_state.chat_history:
 # Entrada de usuario
 if st.session_state.excel_data is not None and st.session_state.faiss_index is not None:
     user_query = st.chat_input("Haz tu pregunta sobre los ciclos formativos...")
+
+    # Reemplazar términos específicos en la consulta del usuario para mejorar la búsqueda
+    #consulta_modificada = consulta_usuario.replace("Ciudad", "Municipio")
+    #consulta_modificada = consulta_usuario.replace("Vespertino", "Tarde")
+    equivalencias = {"Ciudad": "Municipio",
+                    "Vespertino": "Tarde",
+                    "Bilingüe": "Bilingue",
+                    "Nuevo": "Nuevo Ciclo",
+                    "Ciclo Formativo": "Ciclo",
+                    "Instituto": "Centro Educativo"}
+
     if user_query:
+        # Reemplazar términos en la consulta del usuario
+        user_query = user_query.strip()  # Limpiar espacios al inicio y final
+        user_query = user_query.replace("?", "")  # Eliminar signos de interrogación
+        user_query = user_query.replace("¿", "")  # Eliminar signos de interrogación al inicio
+        user_query = user_query.replace(".", "")  # Eliminar puntos al final
+        user_query = user_query.replace(",", "")  # Eliminar comas al final
+        user_query = user_query.replace(":", "")  # Eliminar dos puntos al final
+        user_query = user_query.replace(";", "")  # Eliminar punto y coma al final
+        user_query = user_query.replace("  ", " ")  # Eliminar dobles espacios
+
+        # Reemplazar equivalencias en la consulta del usuario
+        for clave, valor in equivalencias.items():
+            user_query = user_query.replace(clave, valor)
+
         with st.spinner("Pensando...", show_time=True):
             response = ask_rag_model(
                 user_query,
