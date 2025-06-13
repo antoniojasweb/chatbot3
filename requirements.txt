@@ -15,6 +15,8 @@ gtts
 transformers
 torchaudio
 speechrecognition
+sounddevice
+pydub
 
 #pdf2docx
 #pickle
