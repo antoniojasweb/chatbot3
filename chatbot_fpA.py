@@ -645,6 +645,14 @@ if show_datos:
     #    st.sidebar.write(f"- Modelo: `{ModeloEmbeddings}`")
 
 st.sidebar.radio("Preguntar por texto o voz:", ("Texto", "Voz"))  # Opción para elegir entre texto o voz
+if modo == "Voz":
+    col1, col2 = st.columns([1,12])
+    with col1:
+        result = audio_recorder(
+            interval=50,
+            threshold=-60,
+            silenceTimeout=200
+        )
 
 # new_pdf = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
 # if new_pdf:
