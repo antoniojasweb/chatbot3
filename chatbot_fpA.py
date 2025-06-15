@@ -644,22 +644,24 @@ if show_datos:
     #if st.session_state.model is not None:
     #    st.sidebar.write(f"- Modelo: `{ModeloEmbeddings}`")
 
-new_pdf = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
-if new_pdf:
-    # Cargar PDF
-    pdf_obj = st.sidebar.file_uploader("Carga el documento PDF fuente", type="pdf")
-    # Si se carga un PDF, procesarlo
-    if pdf_obj is not None:
-        # Guardar el PDF en un archivo temporal
-        with open(FilePDF, "wb") as f:
-            f.write(pdf_obj.getbuffer())
-        # Extraer información del PDF y crear el DataFrame
-        df = extraer_informacion_pdf(FilePDF)
-        st.session_state.excel_data = df
-        st.session_state.faiss_index, st.session_state.corpus = create_faiss_index(df, st.session_state.model)
-        st.success("¡Datos cargados, embeddings e índice FAISS creados correctamente! Ahora puedes hacer preguntas.")
-        # Limpiar historial de chat al cargar un nuevo archivo
-        st.session_state.chat_history = []
+st.sidebar.radio("Preguntar por texto o voz:", ("Texto", "Voz"))  # Opción para elegir entre texto o voz
+
+# new_pdf = st.sidebar.checkbox("¿Cargar nuevo PDF de datos?")
+# if new_pdf:
+#     # Cargar PDF
+#     pdf_obj = st.sidebar.file_uploader("Carga el documento PDF fuente", type="pdf")
+#     # Si se carga un PDF, procesarlo
+#     if pdf_obj is not None:
+#         # Guardar el PDF en un archivo temporal
+#         with open(FilePDF, "wb") as f:
+#             f.write(pdf_obj.getbuffer())
+#         # Extraer información del PDF y crear el DataFrame
+#         df = extraer_informacion_pdf(FilePDF)
+#         st.session_state.excel_data = df
+#         st.session_state.faiss_index, st.session_state.corpus = create_faiss_index(df, st.session_state.model)
+#         st.success("¡Datos cargados, embeddings e índice FAISS creados correctamente! Ahora puedes hacer preguntas.")
+#         # Limpiar historial de chat al cargar un nuevo archivo
+#         st.session_state.chat_history = []
 
 # Mostrar el DataFrame cargado desde el PDF
 # if st.session_state.excel_data is not None:
@@ -687,6 +689,8 @@ if st.sidebar.button("Vaciar Chat"):
 
 if st.sidebar.button("Reiniciar Chat"):
     st.session_state.clear()  # Borra todas las variables de sesión
+    st.empty()  # Limpia la pantalla de chat
+    st.session_state.chat_history = []  # Reiniciar el historial de chat
     st.rerun()
     st.success("Chat reiniciado. Puedes empezar de nuevo.")
 
